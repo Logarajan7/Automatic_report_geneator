@@ -1,0 +1,53 @@
+!pip install python-docx nltk
+import nltk
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+
+from google.colab import files
+uploaded = files.upload()
+docx_filename = list(uploaded.keys())[0]
+
+from docx import Document
+doc = Document(docx_filename)
+full_text = [paragraph.text for paragraph in doc.paragraphs if paragraph.text.strip()]
+text = ' '.join(full_text)
+
+import random
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import wordnet
+
+def replace_words_with_synonyms(sentence):
+    words = word_tokenize(sentence)
+    pos_tagged = nltk.pos_tag(words)
+
+    modified_sentence = []
+
+    for word, tag in pos_tagged:
+        if tag.startswith('NN') or tag.startswith('VB') or tag.startswith('JJ'): 
+            synonyms = wordnet.synsets(word)
+            if synonyms:
+                synonym = synonyms[0].lemmas()[0].name()
+                modified_sentence.append(synonym)
+            else:
+                modified_sentence.append(word)
+        else:
+            modified_sentence.append(word)
+    return ' '.join(modified_sentence)
+
+sentences = sent_tokenize(text)
+
+modified_sentences = [replace_words_with_synonyms(sentence) for sentence in sentences]
+random.shuffle(modified_sentences)
+
+modified_sentences.insert(0, "[Generated Report]: Summary and Analysis of the Document")
+modified_sentences.append("Note: This report has been automatically generated and may contain modifications from the original content.")
+
+report_text = ' '.join(modified_sentences)
+
+report_doc = Document()
+report_doc.add_heading('Generated Report', 0)
+report_doc.add_paragraph(report_text)
+report_filename = 'modified_generated_report.docx'
+report_doc.save(report_filename)
+files.download(report_filename)
